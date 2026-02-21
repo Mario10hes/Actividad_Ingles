@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Barrio La Madrid – Villavicencio, Meta</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f0e8;
+    --street: #d4c9b0;
+    --block: #e8e0d0;
+    --accent: #c0392b;
+    --green: #27ae60;
+    --blue: #2980b9;
+    --orange: #e67e22;
+    --purple: #8e44ad;
+    --teal: #16a085;
+    --dark: #2c2c2c;
+    --gold: #f39c12;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--dark);
+    min-height: 100vh;
+  }
+
+  header {
+    background: var(--dark);
+    color: #fff;
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    border-bottom: 4px solid var(--accent);
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem;
+    letter-spacing: 0.5px;
+  }
+
+  header p { font-size: 0.85rem; color: #aaa; margin-top: 2px; }
+
+  .compass {
+    margin-left: auto;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .compass-label {
+    position: absolute;
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .compass-label.n { top: 4px; }
+  .compass-label.s { bottom: 4px; }
+  .compass-label.e { right: 5px; }
+  .compass-label.w { left: 5px; }
+
+  .main {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 0;
+    height: calc(100vh - 88px);
+  }
+
+  /* ---- MAP ---- */
+  .map-wrapper {
+    position: relative;
+    overflow: hidden;
+    background: #dfd7c4;
+  }
+
+  svg#map {
+    width: 100%;
+    height: 100%;
+  }
+
+  .place-pin {
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .place-pin:hover { opacity: 0.82; }
+
+  .pin-circle {
+    /* no filter to keep click area stable */
+  }
+
+  /* ---- SIDEBAR ---- */
+  .sidebar {
+    background: #fff;
+    border-left: 3px solid var(--street);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .tabs {
+    display: flex;
+    border-bottom: 2px solid var(--street);
+  }
+
+  .tab-btn {
+    flex: 1;
+    padding: 12px 6px;
+    border: none;
+    background: #f7f5f0;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.2s;
+    border-right: 1px solid var(--street);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .tab-btn:last-child { border-right: none; }
+  .tab-btn.active {
+    background: #fff;
+    color: var(--accent);
+    border-bottom: 2px solid var(--accent);
+    margin-bottom: -2px;
+  }
+
+  .tab-content { display: none; flex: 1; overflow-y: auto; padding: 20px; }
+  .tab-content.active { display: block; }
+
+  /* Place info panel */
+  .place-info {
+    display: none;
+    background: #fff8f0;
+    border: 2px solid var(--orange);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 18px;
+    animation: slideIn 0.3s ease;
+  }
+  .place-info.show { display: block; }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .place-info h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--dark);
+    margin-bottom: 6px;
+  }
+  .place-info .place-type {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--orange);
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+  }
+  .place-info p { font-size: 0.88rem; line-height: 1.5; color: #555; }
+
+  /* Legend */
+  .legend-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    color: var(--dark);
+    margin-bottom: 12px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .legend-item:hover { background: #f0ede8; }
+
+  .legend-dot {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 2.5px solid rgba(0,0,0,0.2);
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem;
+    color: #fff;
+    font-weight: 700;
+  }
+
+  .legend-item .name { font-size: 0.85rem; font-weight: 500; }
+  .legend-item .street { font-size: 0.72rem; color: #999; }
+
+  /* Directions tab */
+  .dest-card {
+    border: 1.5px solid #e8e0d0;
+    border-radius: 10px;
+    padding: 14px;
+    margin-bottom: 14px;
+    transition: border-color 0.2s;
+  }
+  .dest-card:hover { border-color: var(--accent); }
+
+  .dest-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .dest-num {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .dest-title { font-weight: 600; font-size: 0.9rem; }
+  .dest-sub { font-size: 0.75rem; color: #999; }
+
+  .step {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 6px;
+    align-items: flex-start;
+  }
+  .step-icon { font-size: 0.85rem; flex-shrink: 0; margin-top: 1px; }
+  .step p { font-size: 0.82rem; line-height: 1.45; color: #444; }
+
+  /* Description tab */
+  .desc-section { margin-bottom: 20px; }
+  .desc-section h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 1rem;
+    margin-bottom: 8px;
+    color: var(--dark);
+    border-left: 3px solid var(--accent);
+    padding-left: 10px;
+  }
+  .desc-section p { font-size: 0.86rem; line-height: 1.65; color: #555; }
+
+  /* Audio script */
+  .audio-box {
+    background: #f0f8ff;
+    border: 2px dashed var(--blue);
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 10px;
+  }
+  .audio-box h4 { font-size: 0.85rem; color: var(--blue); font-weight: 700; margin-bottom: 8px; }
+  .audio-box p { font-size: 0.83rem; line-height: 1.6; color: #444; font-style: italic; }
+
+  /* Vocabulary */
+  .vocab-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .vocab-chip {
+    background: var(--dark);
+    color: #fff;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.78rem;
+    text-align: center;
+  }
+
+  .click-hint {
+    font-size: 0.8rem;
+    color: #aaa;
+    text-align: center;
+    padding: 10px;
+    border: 1.5px dashed #ddd;
+    border-radius: 8px;
+    margin-bottom: 14px;
+  }
+
+  /* scrollbar */
+  .tab-content::-webkit-scrollbar { width: 4px; }
+  .tab-content::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🗺️ Barrio La Madrid</h1>
+    <p>Villavicencio, Meta · Colombia</p>
+  </div>
+  <div class="compass" title="Compass">
+    <span style="font-size:1.5rem;">🧭</span>
+    <span class="compass-label n">N</span>
+    <span class="compass-label s">S</span>
+    <span class="compass-label e">E</span>
+    <span class="compass-label w">W</span>
+  </div>
+</header>
+
+<div class="main">
+
+  <!-- MAP SVG -->
+  <div class="map-wrapper">
+    <svg id="map" viewBox="0 0 760 680" xmlns="http://www.w3.org/2000/svg">
+
+      <!-- Background -->
+      <rect width="760" height="680" fill="#dfd7c4"/>
+
+      <!-- River / green area top-left -->
+      <ellipse cx="60" cy="120" rx="120" ry="200" fill="#b8d8c8" opacity="0.7"/>
+      <text x="18" y="110" fill="#4a9a70" font-size="10" font-family="DM Sans,sans-serif" font-weight="600">Río / Área</text>
+      <text x="18" y="122" fill="#4a9a70" font-size="10" font-family="DM Sans,sans-serif" font-weight="600">Verde</text>
+
+      <!-- STREETS - Calles (horizontal) -->
+      <!-- Calle 91 Sur -->
+      <rect x="130" y="118" width="630" height="22" fill="#c8bda6" rx="2"/>
+      <text x="136" y="133" fill="#666" font-size="9.5" font-family="DM Sans,sans-serif" font-weight="600">Calle 91 Sur</text>
+
+      <!-- Calle 92 Sur -->
+      <rect x="0" y="310" width="760" height="22" fill="#c8bda6" rx="2"/>
+      <text x="8" y="325" fill="#666" font-size="9.5" font-family="DM Sans,sans-serif" font-weight="600">Calle 92 Sur</text>
+
+      <!-- Calle 92A Sur -->
+      <rect x="0" y="440" width="760" height="18" fill="#c8bda6" rx="2"/>
+      <text x="8" y="453" fill="#666" font-size="9.5" font-family="DM Sans,sans-serif" font-weight="600">Calle 92A Sur</text>
+
+      <!-- Calle 92C Sur -->
+      <rect x="0" y="555" width="760" height="18" fill="#c8bda6" rx="2"/>
+      <text x="8" y="567" fill="#666" font-size="9.5" font-family="DM Sans,sans-serif" font-weight="600">Calle 92C Sur</text>
+
+      <!-- Calle 93 Sur -->
+      <rect x="0" y="640" width="760" height="18" fill="#c8bda6" rx="2"/>
+      <text x="8" y="653" fill="#666" font-size="9.5" font-family="DM Sans,sans-serif" font-weight="600">Calle 93 Sur</text>
+
+      <!-- STREETS - Carreras (vertical) -->
+      <!-- Carrera 52 -->
+      <rect x="680" y="0" width="22" height="680" fill="#c8bda6" rx="2"/>
+      <text x="683" y="70" fill="#666" font-size="9" font-family="DM Sans,sans-serif" font-weight="600" transform="rotate(90,683,70)">Carrera 52</text>
+
+      <!-- Carrera 53 -->
+      <rect x="560" y="0" width="22" height="680" fill="#c8bda6" rx="2"/>
+      <text x="563" y="70" fill="#666" font-size="9" font-family="DM Sans,sans-serif" font-weight="600" transform="rotate(90,563,70)">Carrera 53</text>
+
+      <!-- Carrera 54 -->
+      <rect x="430" y="140" width="20" height="540" fill="#c8bda6" rx="2"/>
+      <text x="433" y="200" fill="#666" font-size="9" font-family="DM Sans,sans-serif" font-weight="600" transform="rotate(90,433,200)">Carrera 54</text>
+
+      <!-- Carrera 55 -->
+      <rect x="300" y="0" width="20" height="680" fill="#c8bda6" rx="2"/>
+      <text x="303" y="80" fill="#666" font-size="9" font-family="DM Sans,sans-serif" font-weight="600" transform="rotate(90,303,80)">Carrera 55</text>
+
+      <!-- Carrera 56 -->
+      <rect x="170" y="140" width="20" height="540" fill="#c8bda6" rx="2"/>
+      <text x="173" y="220" fill="#666" font-size="9" font-family="DM Sans,sans-serif" font-weight="600" transform="rotate(90,173,220)">Carrera 56</text>
+
+      <!-- Carrera 57 -->
+      <rect x="55" y="200" width="20" height="480" fill="#c8bda6" rx="2"/>
+      <text x="58" y="260" fill="#666" font-size="9" font-family="DM Sans,sans-serif" font-weight="600" transform="rotate(90,58,260)">Carrera 57</text>
+
+      <!-- CITY BLOCKS -->
+      <!-- Row 1 (between Calle 91 and 92) -->
+      <rect x="75" y="145" width="90" height="160" fill="#e8e0d0" rx="3" opacity="0.85"/>
+      <rect x="195" y="145" width="100" height="160" fill="#e8e0d0" rx="3" opacity="0.85"/>
+      <rect x="325" y="145" width="100" height="160" fill="#e8e0d0" rx="3" opacity="0.85"/>
+      <rect x="455" y="145" width="100" height="160" fill="#e8e0d0" rx="3" opacity="0.85"/>
+      <rect x="588" y="145" width="87" height="160" fill="#e8e0d0" rx="3" opacity="0.85"/>
+
+      <!-- Row 2 (between Calle 92 and 92A) -->
+      <rect x="0" y="335" width="50" height="100" fill="#e8e0d0" rx="3" opacity="0.85"/>
+      <rect x="75" y="335" width="90" height="100" fill="#e8e0d0" rx="3" opacity="0.85"/>
+      <rect x="195" y="335" width="100" height="100" fill="#e8e0d0" rx="3" opacity="0.85"/>
+      <rect x="325" y="335" width="100" height="100" fill="#e8e0d0" rx="3" opacity="0.85"/>
+      <rect x="455" y="335" width="100" height="100" fill="#e8e0d0" rx="3" opacity="0.85"/>
+      <rect x="588" y="335" width="87" height="100" fill="#e8e0d0" rx="3" opacity="0.85"/>
+
+      <!-- Row 3 (between Calle 92A and 92C) -->
+      <rect x="0" y="462" width="50" height="88" fill="#e8e0d0" rx="3" opacity="0.85"/>
+      <rect x="75" y="462" width="90" height="88" fill="#e8e0d0" rx="3" opacity="0.85"/>
+      <rect x="195" y="462" width="100" height="88" fill="#e8e0d0" rx="3" opacity="0.85"/>
+      <rect x="325" y="462" width="100" height="88" fill="#e8e0d0" rx="3" opacity="0.85"/>
+      <rect x="455" y="462" width="100" height="88" fill="#e8e0d0" rx="3" opacity="0.85"/>
+      <rect x="588" y="462" width="87" height="88" fill="#e8e0d0" rx="3" opacity="0.85"/>
+
+      <!-- Parque (green block) -->
+      <rect x="588" y="335" width="87" height="100" fill="#b8d8b0" rx="3" opacity="0.9"/>
+      <text x="616" y="388" fill="#4a8a40" font-size="8.5" font-family="DM Sans,sans-serif" font-weight="600">Parque</text>
+
+      <!-- TRAFFIC LIGHTS / INTERSECTION dots -->
+      <circle cx="300" cy="310" r="5" fill="#e74c3c" opacity="0.7"/>
+      <circle cx="430" cy="310" r="5" fill="#e74c3c" opacity="0.7"/>
+      <circle cx="560" cy="310" r="5" fill="#e74c3c" opacity="0.7"/>
+      <circle cx="300" cy="440" r="5" fill="#f39c12" opacity="0.7"/>
+      <circle cx="430" cy="440" r="5" fill="#f39c12" opacity="0.7"/>
+
+      <!-- Reference points labels -->
+      <text x="310" y="306" fill="#c0392b" font-size="8" font-family="DM Sans,sans-serif">🚦</text>
+      <text x="440" y="306" fill="#c0392b" font-size="8" font-family="DM Sans,sans-serif">🚦</text>
+
+      <!-- ========== PLACE PINS ========== -->
+
+      <!-- 1. Megacolegio La Madrid (school) - top center -->
+      <g class="place-pin" onclick="showPlace('school')" id="pin-school">
+        <circle cx="380" cy="88" r="20" fill="#27ae60" class="pin-circle"/>
+        <text x="380" y="94" text-anchor="middle" fill="white" font-size="16">🏫</text>
+        <text x="380" y="110" text-anchor="middle" fill="#1a6b3c" font-size="9" font-family="DM Sans,sans-serif" font-weight="700">Megacolegio</text>
+      </g>
+
+      <!-- 2. Autoservicio Max Ahorro (supermarket) - center -->
+      <g class="place-pin" onclick="showPlace('supermarket')" id="pin-supermarket">
+        <circle cx="370" cy="365" r="20" fill="#2980b9" class="pin-circle"/>
+        <text x="370" y="371" text-anchor="middle" fill="white" font-size="16">🛒</text>
+        <text x="370" y="390" text-anchor="middle" fill="#1a5a8a" font-size="9" font-family="DM Sans,sans-serif" font-weight="700">Max Ahorro</text>
+      </g>
+
+      <!-- 3. Panadería La Madrid (bakery) - center-right -->
+      <g class="place-pin" onclick="showPlace('bakery')" id="pin-bakery">
+        <circle cx="520" cy="390" r="20" fill="#e67e22" class="pin-circle"/>
+        <text x="520" y="396" text-anchor="middle" fill="white" font-size="16">🥖</text>
+        <text x="520" y="415" text-anchor="middle" fill="#a0530a" font-size="9" font-family="DM Sans,sans-serif" font-weight="700">Panadería</text>
+      </g>
+
+      <!-- 4. Food Kong (fast food) - right center -->
+      <g class="place-pin" onclick="showPlace('fastfood')" id="pin-fastfood">
+        <circle cx="510" cy="270" r="20" fill="#c0392b" class="pin-circle"/>
+        <text x="510" y="276" text-anchor="middle" fill="white" font-size="16">🍔</text>
+        <text x="510" y="295" text-anchor="middle" fill="#7b1c10" font-size="9" font-family="DM Sans,sans-serif" font-weight="700">Food Kong</text>
+      </g>
+
+      <!-- 5. Droguería (pharmacy) -->
+      <g class="place-pin" onclick="showPlace('pharmacy')" id="pin-pharmacy">
+        <circle cx="240" cy="270" r="20" fill="#16a085" class="pin-circle"/>
+        <text x="240" y="276" text-anchor="middle" fill="white" font-size="16">💊</text>
+        <text x="240" y="295" text-anchor="middle" fill="#0d6b57" font-size="9" font-family="DM Sans,sans-serif" font-weight="700">Droguería</text>
+      </g>
+
+      <!-- 6. Puesto de Policía (police) -->
+      <g class="place-pin" onclick="showPlace('police')" id="pin-police">
+        <circle cx="240" cy="490" r="20" fill="#2c3e50" class="pin-circle"/>
+        <text x="240" y="496" text-anchor="middle" fill="white" font-size="16">🚔</text>
+        <text x="240" y="515" text-anchor="middle" fill="#2c3e50" font-size="9" font-family="DM Sans,sans-serif" font-weight="700">Policía</text>
+      </g>
+
+      <!-- 7. Cancha de Arena (beach volleyball) -->
+      <g class="place-pin" onclick="showPlace('sports_field')" id="pin-sports_field">
+        <circle cx="120" cy="490" r="20" fill="#f39c12" class="pin-circle"/>
+        <text x="120" y="496" text-anchor="middle" fill="white" font-size="16">🏐</text>
+        <text x="120" y="515" text-anchor="middle" fill="#a06c00" font-size="9" font-family="DM Sans,sans-serif" font-weight="700">Cancha Arena</text>
+      </g>
+
+      <!-- 8. Polideportivo -->
+      <g class="place-pin" onclick="showPlace('polideportivo')" id="pin-polideportivo">
+        <circle cx="120" cy="380" r="20" fill="#8e44ad" class="pin-circle"/>
+        <text x="120" y="386" text-anchor="middle" fill="white" font-size="16">🏟️</text>
+        <text x="120" y="405" text-anchor="middle" fill="#5b1f7a" font-size="9" font-family="DM Sans,sans-serif" font-weight="700">Polideportivo</text>
+      </g>
+
+      <!-- 9. Inspira + Academy (academy) -->
+      <g class="place-pin" onclick="showPlace('academy')" id="pin-academy">
+        <circle cx="640" cy="200" r="20" fill="#d35400" class="pin-circle"/>
+        <text x="640" y="206" text-anchor="middle" fill="white" font-size="16">📚</text>
+        <text x="640" y="225" text-anchor="middle" fill="#7d2f00" font-size="9" font-family="DM Sans,sans-serif" font-weight="700">Inspira+</text>
+      </g>
+
+      <!-- 10. Parque La Madrid -->
+      <g class="place-pin" onclick="showPlace('park')" id="pin-park">
+        <circle cx="630" cy="380" r="20" fill="#27ae60" class="pin-circle"/>
+        <text x="630" y="386" text-anchor="middle" fill="white" font-size="16">🌳</text>
+        <text x="630" y="405" text-anchor="middle" fill="#1a6b3c" font-size="9" font-family="DM Sans,sans-serif" font-weight="700">Parque</text>
+      </g>
+
+      <!-- Home icon as starting point -->
+      <g class="place-pin" onclick="showPlace('home')" id="pin-home">
+        <circle cx="240" cy="365" r="20" fill="#7f8c8d" class="pin-circle"/>
+        <text x="240" y="371" text-anchor="middle" fill="white" font-size="16">🏠</text>
+        <text x="240" y="390" text-anchor="middle" fill="#555" font-size="9" font-family="DM Sans,sans-serif" font-weight="700">My Home</text>
+      </g>
+
+      <!-- North arrow -->
+      <g transform="translate(690,30)">
+        <circle cx="0" cy="0" r="22" fill="white" stroke="#ccc" stroke-width="1.5"/>
+        <polygon points="0,-15 -6,5 0,0 6,5" fill="#c0392b"/>
+        <polygon points="0,15 -6,-5 0,0 6,-5" fill="#888"/>
+        <text x="0" y="-17" text-anchor="middle" fill="#c0392b" font-size="9" font-weight="700" font-family="DM Sans,sans-serif">N</text>
+      </g>
+
+    </svg>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('map-info')">📍 Places</button>
+      <button class="tab-btn" onclick="switchTab('directions')">🗺️ Routes</button>
+      <button class="tab-btn" onclick="switchTab('description')">📝 About</button>
+    </div>
+
+    <!-- TAB: MAP INFO -->
+    <div class="tab-content active" id="tab-map-info">
+      <div class="click-hint">👆 Click any pin on the map to see details</div>
+
+      <div class="place-info" id="place-panel"></div>
+
+      <p class="legend-title">📌 All Locations</p>
+
+      <div class="legend-item" onclick="showPlace('school')">
+        <div class="legend-dot" style="background:#27ae60;">🏫</div>
+        <div><div class="name">Megacolegio La Madrid</div><div class="street">Calle 91 Sur · Carrera 54</div></div>
+      </div>
+      <div class="legend-item" onclick="showPlace('supermarket')">
+        <div class="legend-dot" style="background:#2980b9;">🛒</div>
+        <div><div class="name">Autoservicio Max Ahorro</div><div class="street">Calle 92 Sur · Carrera 54</div></div>
+      </div>
+      <div class="legend-item" onclick="showPlace('bakery')">
+        <div class="legend-dot" style="background:#e67e22;">🥖</div>
+        <div><div class="name">Panadería La Madrid</div><div class="street">Calle 92A Sur · Carrera 53</div></div>
+      </div>
+      <div class="legend-item" onclick="showPlace('fastfood')">
+        <div class="legend-dot" style="background:#c0392b;">🍔</div>
+        <div><div class="name">Food Kong (Fast Food)</div><div class="street">Calle 92 Sur · Carrera 53</div></div>
+      </div>
+      <div class="legend-item" onclick="showPlace('pharmacy')">
+        <div class="legend-dot" style="background:#16a085;">💊</div>
+        <div><div class="name">Droguería La Madrid</div><div class="street">Calle 91 Sur · Carrera 55</div></div>
+      </div>
+      <div class="legend-item" onclick="showPlace('police')">
+        <div class="legend-dot" style="background:#2c3e50;">🚔</div>
+        <div><div class="name">Puesto de Policía</div><div class="street">Calle 92A Sur · Carrera 55</div></div>
+      </div>
+      <div class="legend-item" onclick="showPlace('sports_field')">
+        <div class="legend-dot" style="background:#f39c12;">🏐</div>
+        <div><div class="name">Cancha de Arena</div><div class="street">Calle 92A Sur · Carrera 56</div></div>
+      </div>
+      <div class="legend-item" onclick="showPlace('polideportivo')">
+        <div class="legend-dot" style="background:#8e44ad;">🏟️</div>
+        <div><div class="name">Polideportivo La Madrid</div><div class="street">Calle 92 Sur · Carrera 56</div></div>
+      </div>
+      <div class="legend-item" onclick="showPlace('academy')">
+        <div class="legend-dot" style="background:#d35400;">📚</div>
+        <div><div class="name">Inspira + Academy</div><div class="street">Calle 91 Sur · Carrera 52</div></div>
+      </div>
+      <div class="legend-item" onclick="showPlace('park')">
+        <div class="legend-dot" style="background:#27ae60;">🌳</div>
+        <div><div class="name">Parque La Madrid</div><div class="street">Calle 92A Sur · Carrera 52</div></div>
+      </div>
+    </div>
+
+    <!-- TAB: DIRECTIONS -->
+    <div class="tab-content" id="tab-directions">
+      <p style="font-family:'Playfair Display',serif;font-size:1rem;margin-bottom:14px;">5 Routes from 🏠 My Home</p>
+
+      <!-- Route 1 -->
+      <div class="dest-card">
+        <div class="dest-header">
+          <div class="dest-num">1</div>
+          <div><div class="dest-title">Home → Autoservicio Max Ahorro</div><div class="dest-sub">~3 min walk · Carrera 55</div></div>
+        </div>
+        <div class="step"><span class="step-icon">▶️</span><p>Start at your home on <strong>Calle 92 Sur</strong>, between Carrera 55 and 54.</p></div>
+        <div class="step"><span class="step-icon">➡️</span><p>Go <strong>straight ahead east</strong> along Calle 92 Sur.</p></div>
+        <div class="step"><span class="step-icon">🚦</span><p>Cross the traffic light at <strong>Carrera 54</strong>.</p></div>
+        <div class="step"><span class="step-icon">📍</span><p>The supermarket is <strong>right in front of you</strong>, on the left side of Carrera 54.</p></div>
+      </div>
+
+      <!-- Route 2 -->
+      <div class="dest-card">
+        <div class="dest-header">
+          <div class="dest-num">2</div>
+          <div><div class="dest-title">Home → Megacolegio La Madrid</div><div class="dest-sub">~6 min walk · North</div></div>
+        </div>
+        <div class="step"><span class="step-icon">▶️</span><p>Start at your home on <strong>Calle 92 Sur</strong>.</p></div>
+        <div class="step"><span class="step-icon">⬆️</span><p>Turn <strong>right</strong> and walk <strong>north</strong> along Carrera 55.</p></div>
+        <div class="step"><span class="step-icon">🏠</span><p>Walk for about <strong>five minutes</strong> until you reach Calle 91 Sur.</p></div>
+        <div class="step"><span class="step-icon">↩️</span><p>Turn <strong>right</strong> (east) on Calle 91 Sur and continue one block.</p></div>
+        <div class="step"><span class="step-icon">📍</span><p>The school is <strong>in front of you</strong>, between Carrera 55 and 53.</p></div>
+      </div>
+
+      <!-- Route 3 -->
+      <div class="dest-card">
+        <div class="dest-header">
+          <div class="dest-num">3</div>
+          <div><div class="dest-title">Home → Panadería La Madrid</div><div class="dest-sub">~5 min walk · East</div></div>
+        </div>
+        <div class="step"><span class="step-icon">▶️</span><p>Start at your home on <strong>Calle 92 Sur</strong>.</p></div>
+        <div class="step"><span class="step-icon">➡️</span><p>Walk <strong>straight east</strong> along Calle 92 Sur past Carrera 54.</p></div>
+        <div class="step"><span class="step-icon">🚦</span><p>Cross the intersection at <strong>Carrera 53</strong>.</p></div>
+        <div class="step"><span class="step-icon">⬇️</span><p>Turn <strong>right</strong> (south) and walk one block to <strong>Calle 92A Sur</strong>.</p></div>
+        <div class="step"><span class="step-icon">📍</span><p>The bakery is <strong>next to the corner</strong>, on your right side.</p></div>
+      </div>
+
+      <!-- Route 4 -->
+      <div class="dest-card">
+        <div class="dest-header">
+          <div class="dest-num">4</div>
+          <div><div class="dest-title">Home → Polideportivo La Madrid</div><div class="dest-sub">~4 min walk · West</div></div>
+        </div>
+        <div class="step"><span class="step-icon">▶️</span><p>Start at your home on <strong>Calle 92 Sur</strong>.</p></div>
+        <div class="step"><span class="step-icon">⬅️</span><p>Walk <strong>west</strong> along Calle 92 Sur towards Carrera 56.</p></div>
+        <div class="step"><span class="step-icon">🏘️</span><p>Walk for about <strong>two blocks</strong>, crossing Carrera 55.</p></div>
+        <div class="step"><span class="step-icon">📍</span><p>The Polideportivo is <strong>on your left side</strong>, between Carrera 56 and 57.</p></div>
+      </div>
+
+      <!-- Route 5 -->
+      <div class="dest-card">
+        <div class="dest-header">
+          <div class="dest-num">5</div>
+          <div><div class="dest-title">Home → Parque La Madrid</div><div class="dest-sub">~8 min walk · East</div></div>
+        </div>
+        <div class="step"><span class="step-icon">▶️</span><p>Start at your home on <strong>Calle 92 Sur</strong>.</p></div>
+        <div class="step"><span class="step-icon">➡️</span><p>Walk <strong>east</strong> along Calle 92 Sur all the way past Carrera 54 and Carrera 53.</p></div>
+        <div class="step"><span class="step-icon">⬇️</span><p>Turn <strong>right</strong> and walk <strong>south</strong> along Carrera 53.</p></div>
+        <div class="step"><span class="step-icon">🌳</span><p>Cross <strong>Calle 92A Sur</strong> – the park is <strong>in front of you</strong> on the corner.</p></div>
+        <div class="step"><span class="step-icon">📍</span><p>Parque La Madrid is <strong>next to</strong> the Panadería, five minutes on foot.</p></div>
+      </div>
+    </div>
+
+    <!-- TAB: DESCRIPTION -->
+    <div class="tab-content" id="tab-description">
+
+      <div class="desc-section">
+        <h3>📖 Written Description</h3>
+        <p>Barrio La Madrid is a vibrant and welcoming neighborhood located in the south of Villavicencio, in the department of Meta, Colombia. The streets are organized in a grid pattern: horizontal <em>calles</em> run east to west, and vertical <em>carreras</em> run north to south. The main roads are Calle 91 Sur, Calle 92 Sur, and Calle 92A Sur, crossed by Carreras 52 through 57.</p>
+        <br>
+        <p>The neighborhood has everything a family needs. There is a large school in the north, a supermarket and pharmacy in the center, and a bakery and fast food restaurant towards the east. For recreation, residents enjoy the Polideportivo and a sand sports court in the west, and a beautiful community park in the east. A police station near Calle 92A Sur provides safety for all residents. The area has a friendly, community-oriented atmosphere.</p>
+      </div>
+
+      <div class="desc-section">
+        <h3>🎙️ Audio Script</h3>
+        <div class="audio-box">
+          <h4>🔴 Record this (max 2 minutes):</h4>
+          <p>"Hello! I'm going to explain how to get from my home to the supermarket in Barrio La Madrid. Start at my house on Calle 92 Sur, between Carrera 55 and Carrera 54. Go straight ahead east along Calle 92 Sur. After about two minutes on foot, you will reach the traffic light at the intersection with Carrera 54. Cross the street carefully. The Autoservicio Max Ahorro supermarket is right in front of you, on the left side of the road. You can't miss it! The whole walk is about three minutes. Thank you!"</p>
+        </div>
+      </div>
+
+      <div class="desc-section">
+        <h3>📚 Direction Vocabulary</h3>
+        <div class="vocab-grid">
+          <div class="vocab-chip">Go straight ahead</div>
+          <div class="vocab-chip">Turn left / right</div>
+          <div class="vocab-chip">Cross the street</div>
+          <div class="vocab-chip">Next to / beside</div>
+          <div class="vocab-chip">In front of</div>
+          <div class="vocab-chip">On the corner</div>
+          <div class="vocab-chip">Traffic light</div>
+          <div class="vocab-chip">Roundabout</div>
+          <div class="vocab-chip">Five min on foot</div>
+          <div class="vocab-chip">One block north</div>
+          <div class="vocab-chip">Intersection</div>
+          <div class="vocab-chip">On your left/right</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+const places = {
+  school: {
+    name: "Megacolegio La Madrid",
+    type: "School / Colegio",
+    color: "#27ae60",
+    icon: "🏫",
+    desc: "The largest school in the neighborhood, located on Calle 91 Sur. It serves students from primary to secondary levels and is a central reference point in the northern part of La Madrid."
+  },
+  supermarket: {
+    name: "Autoservicio Max Ahorro",
+    type: "Supermarket / Supermercado",
+    color: "#2980b9",
+    icon: "🛒",
+    desc: "The main supermarket of Barrio La Madrid, located at the intersection of Calle 92 Sur and Carrera 54. Residents can find groceries, cleaning supplies, and everyday products here."
+  },
+  bakery: {
+    name: "Panadería La Madrid",
+    type: "Bakery / Panadería",
+    color: "#e67e22",
+    icon: "🥖",
+    desc: "A popular bakery on Calle 92A Sur, near Carrera 53. Famous for fresh bread, pastries, and breakfast items. It's a favorite morning stop for the community."
+  },
+  fastfood: {
+    name: "Food Kong",
+    type: "Fast Food Restaurant",
+    color: "#c0392b",
+    icon: "🍔",
+    desc: "A fast food spot located on Calle 92 Sur near Carrera 53. It serves burgers, fried chicken, and snacks — very popular with students from the nearby school."
+  },
+  pharmacy: {
+    name: "Droguería La Madrid",
+    type: "Pharmacy / Droguería",
+    color: "#16a085",
+    icon: "💊",
+    desc: "The neighborhood pharmacy, located on Calle 91 Sur near Carrera 55. It provides medicines, first aid supplies, and basic health products for all residents."
+  },
+  police: {
+    name: "Puesto de Policía",
+    type: "Police Station",
+    color: "#2c3e50",
+    icon: "🚔",
+    desc: "The local police outpost on Calle 92A Sur, ensuring the safety and security of Barrio La Madrid and its residents 24 hours a day."
+  },
+  sports_field: {
+    name: "Cancha de Arena",
+    type: "Sand Sports Court",
+    color: "#f39c12",
+    icon: "🏐",
+    desc: "A sand volleyball and sports court near Carrera 56 and Calle 92A Sur. It's a gathering spot for recreational activities, especially for young people in the evenings."
+  },
+  polideportivo: {
+    name: "Polideportivo La Madrid",
+    type: "Sports Complex",
+    color: "#8e44ad",
+    icon: "🏟️",
+    desc: "The community sports complex on Calle 92 Sur near Carrera 56–57. It includes courts for basketball, football, and other sports, as well as the Centro Vida De La Madrid for seniors."
+  },
+  academy: {
+    name: "Inspira + Academy",
+    type: "Educational Academy",
+    color: "#d35400",
+    icon: "📚",
+    desc: "A private academy and tutoring center located on Calle 91 Sur near Carrera 52. It offers additional classes and skill-building courses for students of all ages."
+  },
+  park: {
+    name: "Parque La Madrid",
+    type: "Community Park",
+    color: "#27ae60",
+    icon: "🌳",
+    desc: "The main green space of Barrio La Madrid, located on Calle 92A Sur near Carrera 52–53. Families gather here for walks, children's play, and community events."
+  },
+  home: {
+    name: "My Home",
+    type: "Starting Point",
+    color: "#7f8c8d",
+    icon: "🏠",
+    desc: "Your home on Calle 92 Sur, between Carrera 55 and Carrera 54. This is the starting point for all five routes described in the Routes tab."
+  }
+};
+
+function showPlace(id) {
+  const p = places[id];
+  const panel = document.getElementById('place-panel');
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <span style="font-size:1.6rem;">${p.icon}</span>
+      <div>
+        <h3>${p.name}</h3>
+        <div class="place-type" style="color:${p.color};">${p.type}</div>
+      </div>
+    </div>
+    <p>${p.desc}</p>
+  `;
+  panel.classList.add('show');
+  panel.style.borderColor = p.color;
+
+  // Switch to map-info tab
+  switchTab('map-info');
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.tab-btn').forEach((btn, i) => {
+    btn.classList.remove('active');
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+  document.getElementById('tab-' + id).classList.add('active');
+  const map = {'map-info': 0, 'directions': 1, 'description': 2};
+  document.querySelectorAll('.tab-btn')[map[id]].classList.add('active');
+}
+</script>
+
+</body>
+</html>
